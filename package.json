@@ -1,5 +1,18 @@
 {
-  "dependencies": {
-    "mongodb": "^6.19.0"
+  "name": "eduproject",
+  "private": true,
+  "devDependencies": {
+    "husky": "^9.0.0",
+    "lint-staged": "^15.2.0"
+  },
+  "lint-staged": {
+    "server/**/*.{js,json}": [
+      "npm --prefix server run lint:fix",
+      "npm --prefix server run format"
+    ],
+    "client/**/*.{js,jsx,json,css,md}": [
+      "npm --prefix client run lint:fix",
+      "npm --prefix client run format"
+    ]
   }
 }
