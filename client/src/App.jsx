@@ -1,56 +1,76 @@
-import { useState } from 'react';
-import reactLogo from './assets/react.svg';
-import viteLogo from '/vite.svg';
-import './App.css';
+// App.jsx
+import { Routes, Route } from "react-router-dom";
+import RegisterRole from "./pages/RegisterRole";
+import RegisterForm from "./pages/RegisterForm";
+import Login from "./pages/Login";
+import Home from "./pages/Home";
+import TutorDashboard from "./pages/TutorDashboard";
+import StudentDashboard from "./pages/StudentDashboard";
+import ProtectedRoute from "./components/ProtectedRoute";
+import AdminDashboard from "./pages/AdminDashboard";
+import TutorBookingsPage from "./pages/TutorBookings";
+import BrowseCourses from "./pages/BrowseCourses";
+import StudentBookings from "./pages/StudentBookings";
+import StudentEnrollments from "./pages/StudentEnrollments";
+import StudentPayment from "./pages/StudentPayment";
+import TutorAssignment from "./pages/TutorAssignment";
+import StudentAssignment from "./pages/StudentAssignment.jsx";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
+import TutorApplyCourse from "./pages/TutorApplyCourse";
+import StudentReview from "./pages/StudentReview";
+import TutorReviews from "./pages/TutorReviews";
 
 function App() {
-  const [count, setCount] = useState(0);
-
   return (
-    <>
-      <div className="flex justify-center gap-6 mt-10">
-        <a href="https://vite.dev" target="_blank" rel="noreferrer">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank" rel="noreferrer">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
+    <Routes>
+      {/* Public routes */}
+      <Route path="/" element={<Home />} />
+      <Route path="/register" element={<RegisterRole />} />
+      <Route path="/register/:role" element={<RegisterForm />} />
+      <Route path="/login" element={<Login />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
 
-      <h1 className="text-4xl font-bold text-center mt-6">
-        Vite + React + Tailwind
-      </h1>
+      {/* 🔓 Public Browse Courses (works with or without login) */}
+      <Route path="/student/courses" element={<BrowseCourses />} />
 
-      <div className="card flex flex-col items-center gap-4 mt-8">
-        <button
-          onClick={() => setCount((count) => count + 1)}
-          className="px-6 py-3 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition"
-        >
-          count is {count}
-        </button>
-        <p className="text-gray-700">
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
+      {/* Protected student routes */}
+      <Route element={<ProtectedRoute allowedRoles={["student"]} />}>
+        <Route path="/student/dashboard" element={<StudentDashboard />} />
+        <Route path="/student/bookings" element={<StudentBookings />} />
+        <Route path="/student/enrollments" element={<StudentEnrollments />} />
+        <Route path="/student/pay/:bookingId" element={<StudentPayment />} />
+        <Route
+          path="/student/assignments/:assignmentId"
+          element={<StudentAssignment />}
+        />
+        <Route
+          path="/student/review/:tutorId/:courseId"
+          element={<StudentReview />}
+        />
+      </Route>
 
-      {/* ✅ Tailwind test block */}
-      <div className="mt-10 flex justify-center">
-        <div className="p-6 bg-green-100 border border-green-300 rounded-lg shadow">
-          <p className="text-green-800 font-medium">
-            🎉 Tailwind v4 is working!
-          </p>
-        </div>
-      </div>
+      {/* Protected tutor routes */}
+      <Route element={<ProtectedRoute allowedRoles={["tutor"]} />}>
+        <Route path="/tutor/dashboard" element={<TutorDashboard />} />
+        <Route path="/tutor/bookings" element={<TutorBookingsPage />} />
+        <Route path="/tutor/reviews" element={<TutorReviews />} />
+        <Route
+          path="/tutor/courses/:courseId/apply"
+          element={<TutorApplyCourse />}
+        />
+        <Route
+          path="/tutor/bookings/:bookingId/assignment"
+          element={<TutorAssignment />}
+        />
+      </Route>
 
-      <div className="mt-6 flex justify-center">
-        <button
-          onClick={() => setCount((c) => c + 1)}
-          className="px-6 py-3 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition"
-        >
-          count is {count}
-        </button>
-      </div>
-    </>
+      {/* Protected admin routes */}
+      <Route element={<ProtectedRoute allowedRoles={["admin"]} />}>
+        <Route path="/admin/dashboard" element={<AdminDashboard />} />
+      </Route>
+    </Routes>
   );
 }
 

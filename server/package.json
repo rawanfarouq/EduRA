@@ -9,7 +9,9 @@
     "start": "node src/index.js",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "seed": "node src/scripts/seed.js",
+    "clear:notifications": "node src/scripts/clearNotifications.js"
   },
   "keywords": [],
   "author": "",
@@ -21,9 +23,16 @@
     "dotenv": "^17.2.1",
     "express": "^5.1.0",
     "jsonwebtoken": "^9.0.2",
+    "mammoth": "^1.11.0",
     "mongoose": "^8.18.0",
     "morgan": "^1.10.1",
-    "multer": "^2.0.2"
+    "multer": "^2.0.2",
+    "nodemailer": "^7.0.10",
+    "openai": "^6.8.1",
+    "pdf-parse": "^1.1.1",
+    "stopword": "^3.1.5",
+    "string-similarity": "^4.0.4",
+    "sweetalert2": "^11.26.3"
   },
   "devDependencies": {
     "@eslint/js": "^9.34.0",

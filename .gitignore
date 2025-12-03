@@ -1,26 +1,29 @@
-# Node dependencies
-node_modules
-
-# Build outputs
-dist
-build
-
-# Logs
+# Node
+node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+pnpm-lock.yaml
+package-lock.json
 
-# Environment files (keep secrets out of git)
+# Vite build
+dist/
+.vite/
+
+# Logs
+logs
+*.log
+
+# Env
 .env
 .env.local
-.env.*.local
+client/.env
+server/.env
 
-# OS/system files
-.DS_Store
-Thumbs.db
+# Uploads
+uploads/
 
-# Coverage / test output
-coverage
-
-# VS Code settings (optional, if you don’t want to commit them)
+# IDE
 .vscode/
+.idea/
+.DS_Store
