@@ -135,7 +135,7 @@ export async function notifyTutorsForNewCourse(courseDoc) {
     const notificationsToInsert = [];
 
     // similarity threshold – tweak as you like
-    const STRICT_THRESHOLD = 0.35;
+    const STRICT_THRESHOLD = 0.25;
 
     // 2) For each tutor: extract text + expertise, compute similarity
     for (const tutor of tutors) {
@@ -434,7 +434,7 @@ async function rankCoursesForCVText(cvText) {
 
   // ✅ Softer threshold + ensure we always send at least e.g. 5
   const MAX_RESULTS = 12;
-  const STRICT_THRESHOLD = 0.2; // was 0.35
+  const STRICT_THRESHOLD = 0.25; // was 0.35
   const MIN_RESULTS = 5;
 
   let strictMatches = scored
