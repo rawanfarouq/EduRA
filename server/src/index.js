@@ -1,3 +1,6 @@
+import path from 'path';
+import fs from 'fs';
+
 import express from 'express';
 import cors from 'cors';
 import morgan from 'morgan';
@@ -7,14 +10,22 @@ import dotenv from 'dotenv';
 import { connectDB } from './config/db.js';
 
 dotenv.config();
+
 const app = express();
+
+const uploadsRoot = path.join(process.cwd(), 'uploads');
+fs.mkdirSync(uploadsRoot, { recursive: true });
+
+// 👇 Add this CORS setup
+const allowedOrigin = process.env.CLIENT_ORIGIN || 'http://localhost:5173';
 
 app.use(
   cors({
-    origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
+    origin: allowedOrigin,
     credentials: true,
   }),
 );
+
 app.use(express.json());
 app.use(cookieParser());
 app.use(morgan('dev'));
