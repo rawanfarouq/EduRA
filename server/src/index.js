@@ -16,12 +16,21 @@ const app = express();
 const uploadsRoot = path.join(process.cwd(), 'uploads');
 fs.mkdirSync(uploadsRoot, { recursive: true });
 
-// 👇 Add this CORS setup
-const allowedOrigin = process.env.CORS_ORIGIN || 'http://localhost:5173';
+// CORS whitelist for dev + prod
+const whitelist = [
+  'http://localhost:5173', // local dev
+  'https://edura-client.onrender.com', // Render frontend
+];
 
 app.use(
   cors({
-    origin: allowedOrigin,
+    origin: (origin, callback) => {
+      // allow server-to-server / curl (no origin) and whitelisted origins
+      if (!origin || whitelist.includes(origin)) {
+        return callback(null, true);
+      }
+      return callback(new Error('Not allowed by CORS'));
+    },
     credentials: true,
   }),
 );
