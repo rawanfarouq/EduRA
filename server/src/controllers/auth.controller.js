@@ -8,10 +8,13 @@ import AdminProfile from '../models/AdminProfile.js';
 import Tutor from '../models/Tutor.js';
 import { verifyRefresh, signAccess, signRefresh } from '../utils/jwt.js';
 
+const isProd = process.env.NODE_ENV === 'production';
+
 const refreshCookieOptions = {
   httpOnly: true,
-  sameSite: 'lax',
-  secure: false, // true in production with HTTPS
+  // For cross-site cookies (frontend ↔ backend on different domains)
+  sameSite: isProd ? 'none' : 'lax',
+  secure: isProd, // must be true when sameSite is 'none'
   path: '/api/auth/refresh',
   maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
 };
