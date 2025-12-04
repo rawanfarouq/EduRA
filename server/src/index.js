@@ -17,7 +17,7 @@ const uploadsRoot = path.join(process.cwd(), 'uploads');
 fs.mkdirSync(uploadsRoot, { recursive: true });
 
 // 👇 Add this CORS setup
-const allowedOrigin = process.env.CLIENT_ORIGIN || 'http://localhost:5173';
+const allowedOrigin = process.env.CORS_ORIGIN || 'http://localhost:5173';
 
 app.use(
   cors({
