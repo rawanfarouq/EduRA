@@ -362,15 +362,12 @@ export async function notifyTutorsForNewCourse(courseDoc) {
   }
 }
 
-
-
 /**
  * 🔧 Core ranking logic reused by both:
  * - suggestCoursesFromCV (upload)
  * - suggestCoursesForTutorCV (logged-in tutor, stored CV)
  */
 async function rankCoursesForCVText(cvText) {
-  // 1) Extract expertise from CV
   const expertise = await extractExpertiseFromCV(cvText);
   const allKeywords = [
     expertise.primaryField,
@@ -378,16 +375,13 @@ async function rankCoursesForCVText(cvText) {
     ...(expertise.keywords || []),
   ].filter(Boolean);
 
-  console.log('CV expertise:', expertise);
-
-  // 2) CV embedding
   const cvEmbedding = await client.embeddings.create({
     model: 'text-embedding-3-small',
     input: cvText.slice(0, 8000),
   });
   const cvVector = cvEmbedding.data[0].embedding;
 
-  // 3) Load only courses that have NO instructor yet (open for tutors)
+  // ✅ consider ALL non-archived courses
   const courses = await Course.find({ instructorId: null })
     .populate('categoryId')
     .lean();
@@ -400,11 +394,9 @@ async function rankCoursesForCVText(cvText) {
       course.description || ''
     } ${categoryName}`;
 
-    // compute whether there is any keyword hit, but don't skip course
     const hasKeywordHit =
       allKeywords.length > 0 ? includesAny(combinedText, allKeywords) : false;
 
-    // 4) Embed course
     const courseEmbed = await client.embeddings.create({
       model: 'text-embedding-3-small',
       input: combinedText.slice(0, 8000),
@@ -413,10 +405,7 @@ async function rankCoursesForCVText(cvText) {
 
     const sim = cosineSim(cvVector, courseVector);
 
-    // 5) Boosts (soft, not hard filters)
     let boost = 0;
-
-    // If category name overlaps with primary/related fields → boost
     if (
       includesAny(categoryName, [
         expertise.primaryField,
@@ -425,13 +414,9 @@ async function rankCoursesForCVText(cvText) {
     ) {
       boost += 0.08;
     }
-
-    // If title has any keyword → small boost
     if (includesAny(course.title || '', allKeywords)) {
       boost += 0.05;
     }
-
-    // If we had a keyword hit anywhere in combined text → extra small boost
     if (hasKeywordHit) {
       boost += 0.03;
     }
@@ -447,25 +432,26 @@ async function rankCoursesForCVText(cvText) {
     });
   }
 
-  // 6) Rank + thresholding
+  // ✅ Softer threshold + ensure we always send at least e.g. 5
   const MAX_RESULTS = 12;
-  const STRICT_THRESHOLD = 0.35; // slightly lower than 0.45
+  const STRICT_THRESHOLD = 0.25; // was 0.35
+  const MIN_RESULTS = 5;
 
-  // First try: only reasonably strong matches
   let strictMatches = scored
     .filter((c) => c.finalScore >= STRICT_THRESHOLD)
-    .sort((a, b) => b.finalScore - a.finalScore)
-    .slice(0, MAX_RESULTS);
+    .sort((a, b) => b.finalScore - a.finalScore);
 
-  let fallbackUsed = false;
-
-  // Fallback: if nothing passes threshold, return the top few anyway
-  if (!strictMatches.length && scored.length) {
-    fallbackUsed = true;
-    strictMatches = scored
+  // fill up with top results even if below threshold
+  if (strictMatches.length < MIN_RESULTS) {
+    const extra = scored
+      .filter((c) => !strictMatches.includes(c))
       .sort((a, b) => b.finalScore - a.finalScore)
-      .slice(0, Math.min(5, scored.length));
+      .slice(0, MIN_RESULTS - strictMatches.length);
+
+    strictMatches = [...strictMatches, ...extra];
   }
+
+  strictMatches = strictMatches.slice(0, MAX_RESULTS);
 
   const suggested = strictMatches.map((c) => c.id);
 
@@ -473,7 +459,7 @@ async function rankCoursesForCVText(cvText) {
     suggested,
     matches: strictMatches,
     expertise,
-    fallback: fallbackUsed,
+    fallback: strictMatches.length < scored.length,
   };
 }
 
@@ -707,8 +693,6 @@ Return STRICT JSON only in this format (no extra text):
     res.status(500).json({ message: 'Failed to create assignment' });
   }
 }
-
-
 
 // 👀 Tutor view: get assignment for a specific booking (no creation)
 // GET /api/ai/tutor/bookings/:bookingId/assignment
