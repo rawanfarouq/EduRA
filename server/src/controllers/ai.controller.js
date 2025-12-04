@@ -86,6 +86,16 @@ function normalize(str = '') {
   return str.toLowerCase();
 }
 
+// ✅ Keep only keywords that actually appear in the CV text
+function filterKeywordsByPresence(cvText, keywords = []) {
+  const lowerCV = normalize(cvText);
+  return keywords.filter((w) => {
+    const word = normalize(w);
+    if (!word) return false;
+    return lowerCV.includes(word);
+  });
+}
+
 function includesAny(text, words = []) {
   const t = normalize(text);
   return words.some((w) => t.includes(normalize(w)));
@@ -368,20 +378,29 @@ export async function notifyTutorsForNewCourse(courseDoc) {
  * - suggestCoursesForTutorCV (logged-in tutor, stored CV)
  */
 async function rankCoursesForCVText(cvText) {
+  // 1) Extract expertise with LLM
   const expertise = await extractExpertiseFromCV(cvText);
-  const allKeywords = [
+
+  const rawKeywords = [
     expertise.primaryField,
     ...(expertise.relatedFields || []),
     ...(expertise.keywords || []),
   ].filter(Boolean);
 
+  // ✅ Only keep keywords that literally appear in the CV
+  const allKeywords = filterKeywordsByPresence(cvText, rawKeywords);
+
+  console.log('CV expertise (raw):', expertise);
+  console.log('CV keywords actually present in text:', allKeywords);
+
+  // 2) CV embedding
   const cvEmbedding = await client.embeddings.create({
     model: 'text-embedding-3-small',
     input: cvText.slice(0, 8000),
   });
   const cvVector = cvEmbedding.data[0].embedding;
 
-  // ✅ consider ALL non-archived courses
+  // 3) Load only courses open for tutors (instructorId: null)
   const courses = await Course.find({ instructorId: null })
     .populate('categoryId')
     .lean();
@@ -397,6 +416,7 @@ async function rankCoursesForCVText(cvText) {
     const hasKeywordHit =
       allKeywords.length > 0 ? includesAny(combinedText, allKeywords) : false;
 
+    // 4) Embed course
     const courseEmbed = await client.embeddings.create({
       model: 'text-embedding-3-small',
       input: combinedText.slice(0, 8000),
@@ -405,20 +425,22 @@ async function rankCoursesForCVText(cvText) {
 
     const sim = cosineSim(cvVector, courseVector);
 
+    // 5) Much smaller boosts (let embeddings dominate)
     let boost = 0;
-    if (
-      includesAny(categoryName, [
-        expertise.primaryField,
-        ...(expertise.relatedFields || []),
-      ])
-    ) {
-      boost += 0.08;
+
+    // If category name overlaps with keywords that REALLY appear in CV → tiny boost
+    if (includesAny(categoryName, allKeywords)) {
+      boost += 0.02;
     }
+
+    // If title has any keyword → small boost
     if (includesAny(course.title || '', allKeywords)) {
-      boost += 0.05;
+      boost += 0.02;
     }
+
+    // Any keyword hit anywhere in text → extra tiny boost
     if (hasKeywordHit) {
-      boost += 0.03;
+      boost += 0.01;
     }
 
     const finalScore = sim + boost;
@@ -432,19 +454,20 @@ async function rankCoursesForCVText(cvText) {
     });
   }
 
-  // ✅ Softer threshold + ensure we always send at least e.g. 5
+  // 6) Rank + thresholding
   const MAX_RESULTS = 12;
-  const STRICT_THRESHOLD = 0.25; // was 0.35
+  const STRICT_THRESHOLD = 0.28; // slightly up because boosts are smaller
   const MIN_RESULTS = 5;
 
   let strictMatches = scored
     .filter((c) => c.finalScore >= STRICT_THRESHOLD)
     .sort((a, b) => b.finalScore - a.finalScore);
 
-  // fill up with top results even if below threshold
+  // 🔁 If too few matches, fill up with the best remaining courses
   if (strictMatches.length < MIN_RESULTS) {
+    const usedIds = new Set(strictMatches.map((c) => String(c.id)));
     const extra = scored
-      .filter((c) => !strictMatches.includes(c))
+      .filter((c) => !usedIds.has(String(c.id)))
       .sort((a, b) => b.finalScore - a.finalScore)
       .slice(0, MIN_RESULTS - strictMatches.length);
 
