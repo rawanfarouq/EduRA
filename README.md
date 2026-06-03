@@ -3,7 +3,7 @@
 EduRA is a MERN-stack web application that connects **students**, **tutors**, and **admins** in one integrated platform.  
 It supports course discovery, tutor assignment, booking, resource sharing, and admin management in an organized, user-friendly way.
 
-🔗 **Deployed App (Client):** https://edura-client.onrender.com/
+
 
 ---
 
